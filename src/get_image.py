@@ -13,6 +13,9 @@ Options:
 '''
 
 # python src/get_image.py --url=https://www.vangoghgallery.com/img/starry_night_full.jpg
+# python src/get_image.py --url=http://ubc-mds.github.io/img/mdslogopad.png
+# python src/get_image.py --url=https://www.jerrysartarama.com/blog/images/2015/05/blog-mona-lisa-1.jpg
+# python src/get_image.py --url=https://www.adorama.com/alc/wp-content/uploads/2018/11/landscape-photography-tips-yosemite-valley-feature.jpg
 
 import sys
 from docopt import docopt

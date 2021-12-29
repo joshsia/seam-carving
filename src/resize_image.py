@@ -33,7 +33,7 @@ def main(opt):
 
     out_file = "img/" + opt["--out_file"]
 
-    plt.imsave(out_file, resized_img)
+    plt.imsave(out_file, np.ascontiguousarray(resized_img))
 
 
 def find_vertical_seam(energy):
@@ -135,6 +135,36 @@ def remove_vertical_seam(image, seam):
     return new_image
 
 
+def add_vertical_seam(image, seam):
+    """
+    Add a vertical seam to an image.
+
+    Parameters
+    ----------
+    image : numpy.ndarray
+        a 3d numpy array containing the pixel values
+    seam : numpy.ndarray
+        a 1d array (or list) containing the column index of each pixel in the seam
+        length N, all values between 0 and M-1
+
+    Returns
+    -------
+    numpy.ndarray
+        a new image that is larger by 1 column. Size N by M+1.
+    """
+
+    height = image.shape[0]
+    linear_inds = np.array(seam)+np.arange(image.shape[0])*image.shape[1]
+    values = image[np.arange(image.shape[0]), seam]
+    new_image = np.zeros(
+        (height, image.shape[1]+1, image.shape[-1]), dtype=image.dtype)
+    for c in range(image.shape[-1]):
+        temp = np.insert(image[:, :, c], linear_inds.astype(int), values[:, c])
+        temp = np.reshape(temp, (height, image.shape[1]+1))
+        new_image[:, :, c] = temp
+    return new_image
+
+
 def remove_horizontal_seam(image, seam):
     """
     Remove a horizontal seam from an image.
@@ -156,11 +186,31 @@ def remove_horizontal_seam(image, seam):
     return np.transpose(remove_vertical_seam(np.transpose(image, (1, 0, 2)), seam), (1, 0, 2))
 
 
+def add_horizontal_seam(image, seam):
+    """
+    Add a horizontal seam to an image.
+
+    Parameters
+    ----------
+    image : numpy.ndarray 
+        a 2d numpy array containing the pixel values. Size NxM
+    seam : numpy.ndarray
+        a 1d array containing the column index of each pixel in the seam
+        length N, all values between 0 and M-1.
+
+    Returns
+    -------
+    numpy.ndarray
+        a new image that is larger by 1 row. Size N+1 by M.
+    """
+
+    return np.transpose(add_vertical_seam(np.transpose(image, (1, 0, 2)), seam), (1, 0, 2))
+
+
 def seam_carve(image, desired_height, desired_width):
     """
     Resize an NxM image to a desired height and width based on the
-    energy function of the image. 
-    Note: this function only makes images smaller. Enlarging an image is not implemented. 
+    energy function of the image.
     Note: this function removes all vertical seams before removing any horizontal
     seams, which may not be optimal.
 
@@ -182,21 +232,56 @@ def seam_carve(image, desired_height, desired_width):
     original_width = image.shape[1]
     original_height = image.shape[0]
 
-    # Removing vertical seams (i.e. decreasing width)
-    while image.shape[1] > (desired_width * original_width):
-        seam = find_vertical_seam(get_energy(image))
-        assert len(seam) == image.shape[0], "the length of the seam must equal the height of the image"
-        
-        image = remove_vertical_seam(image, seam)
-        print(f"\rWidth is now {round(100 * image.shape[1] / original_width, 1)}% of original", end="")
+    if desired_width <= 1:
+        # Removing vertical seams (i.e. decreasing width)
+        while image.shape[1] >= (desired_width * original_width):
+            seam = find_vertical_seam(get_energy(image))
+            assert len(seam) == image.shape[0], "the length of the seam must equal the height of the image"
+            
+            image = remove_vertical_seam(image, seam)
+            print(f"\rWidth is now {round(100 * image.shape[1] / original_width, 1)}% of original", end="")
 
-    # Removing horizontal seams (i.e. decreasing height)
-    while image.shape[0] > (desired_height * original_height):
-        seam = find_horizontal_seam(get_energy(image))
-        assert len(seam) == image.shape[1], "the length of the seam must equal the width of the image"
+        if desired_height <= 1:
+            # Removing horizontal seams (i.e. decreasing height)
+            while image.shape[0] >= (desired_height * original_height):
+                seam = find_horizontal_seam(get_energy(image))
+                assert len(seam) == image.shape[1], "the length of the seam must equal the width of the image"
 
-        image = remove_horizontal_seam(image, seam)
-        print(f"\rHeight is now {round(100 * image.shape[0] / original_height, 1)}% of original", end="")
+                image = remove_horizontal_seam(image, seam)
+                print(f"\rHeight is now {round(100 * image.shape[0] / original_height, 1)}% of original", end="")
+        else:
+            # Adding horizontal seams (i.e increasing height)
+            while image.shape[0] < (desired_height * original_height):
+                seam = find_horizontal_seam(get_energy(image))
+                assert len(seam) == image.shape[1], "the length of the seam must equal the width of the image"
+
+                image = add_horizontal_seam(image, seam)
+                print(f"\rHeight is now {round(100 * image.shape[0] / original_height, 1)}% of original", end="")
+    else:
+        # Adding vertical seams (i.e. increasing width)
+        while image.shape[1] < (desired_width * original_width):
+            seam = find_vertical_seam(get_energy(image))
+            assert len(seam) == image.shape[0], "the length of the seam must equal the height of the image"
+            
+            image = add_vertical_seam(image, seam)
+            print(f"\rWidth is now {round(100 * image.shape[1] / original_width, 1)}% of original", end="")
+
+        if desired_height <= 1:
+            # Removing horizontal seams (i.e. decreasing height)
+            while image.shape[0] >= (desired_height * original_height):
+                seam = find_horizontal_seam(get_energy(image))
+                assert len(seam) == image.shape[1], "the length of the seam must equal the width of the image"
+
+                image = remove_horizontal_seam(image, seam)
+                print(f"\rHeight is now {round(100 * image.shape[0] / original_height, 1)}% of original", end="")
+        else:
+            # Adding horizontal seams (i.e increasing height)
+            while image.shape[0] < (desired_height * original_height):
+                seam = find_horizontal_seam(get_energy(image))
+                assert len(seam) == image.shape[1], "the length of the seam must equal the width of the image"
+
+                image = add_horizontal_seam(image, seam)
+                print(f"\rHeight is now {round(100 * image.shape[0] / original_height, 1)}% of original", end="")
     
     return image
 
