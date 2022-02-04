@@ -10,6 +10,8 @@ Seam carving is a content-aware image resizing technique which adds or removes r
 
 [This video](https://www.youtube.com/watch?v=6NcIJXTlugc) provides a demonstration of seam carving.
 
+Note: The current implementation works better for resizing images to be smaller than larger.
+
 ### Usage
 
 There are two suggested ways to run this analysis:
