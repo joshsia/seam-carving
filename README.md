@@ -12,6 +12,12 @@ Seam carving is a content-aware image resizing technique which adds or removes r
 
 Note: The current implementation works better for resizing images to be smaller than larger.
 
+An example of an image resized using seam carving is shown below:
+
+Original image            |  Resized image 
+:-------------------------:|:-------------------------:
+![original](https://github.com/joshsia/seam-carving/blob/main/img/input-image.jpg)  |  ![resized](https://github.com/joshsia/seam-carving/blob/main/img/resized-image.jpg)
+
 ### Usage
 
 There are two suggested ways to run this analysis:
